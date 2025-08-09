@@ -50,7 +50,7 @@ export const geminiModels = {
 	},
 	"gemini-2.5-flash": {
 		maxTokens: 64_000,
-		contextWindow: 1_048_576,
+		contextWindow: 249500,
 		supportsImages: true,
 		supportsPromptCache: true,
 		inputPrice: 0.3,
@@ -144,7 +144,7 @@ export const geminiModels = {
 	},
 	"gemini-2.5-pro": {
 		maxTokens: 64_000,
-		contextWindow: 1_048_576,
+		contextWindow: 249500,
 		supportsImages: true,
 		supportsPromptCache: true,
 		inputPrice: 2.5, // This is the pricing for prompts above 200k tokens.
