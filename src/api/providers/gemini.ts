@@ -10,6 +10,7 @@ import type { JWTInput } from "google-auth-library"
 
 import { type ModelInfo, type GeminiModelId, geminiDefaultModelId, geminiModels } from "@roo-code/types"
 
+import { getGeminiTokenChannel } from "../../core/output-channel"
 import type { ApiHandlerOptions } from "../../shared/api"
 import { safeJsonParse } from "../../shared/safeJsonParse"
 
@@ -143,6 +144,13 @@ export class GeminiHandler extends BaseProvider implements SingleCompletionHandl
 				const outputTokens = lastUsageMetadata.candidatesTokenCount ?? 0
 				const cacheReadTokens = lastUsageMetadata.cachedContentTokenCount
 				const reasoningTokens = lastUsageMetadata.thoughtsTokenCount
+
+				const channel = getGeminiTokenChannel()
+				channel.appendLine(
+					`Gemini Usage - Model: ${model}, Prompt: ${inputTokens}, Candidates: ${outputTokens}, Cached: ${
+						cacheReadTokens ?? 0
+					}, Thoughts: ${reasoningTokens ?? 0}, Total: ${lastUsageMetadata.totalTokenCount}`,
+				)
 
 				yield {
 					type: "usage",
