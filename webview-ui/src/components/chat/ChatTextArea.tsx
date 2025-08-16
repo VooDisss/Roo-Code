@@ -38,8 +38,8 @@ interface ChatTextAreaProps {
 	sendingDisabled: boolean
 	selectApiConfigDisabled: boolean
 	placeholderText: string
-	selectedImages: string[]
-	setSelectedImages: React.Dispatch<React.SetStateAction<string[]>>
+	selectedMedia: string[]
+	setSelectedMedia: React.Dispatch<React.SetStateAction<string[]>>
 	onSend: () => void
 	onSelectImages: () => void
 	shouldDisableImages: boolean
@@ -47,6 +47,10 @@ interface ChatTextAreaProps {
 	mode: Mode
 	setMode: (value: Mode) => void
 	modeShortcutText: string
+	// Edit mode props
+	isEditMode?: boolean
+	onCancel?: () => void
+	acceptedFileTypes?: string[]
 }
 
 export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
@@ -56,8 +60,8 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			setInputValue,
 			selectApiConfigDisabled,
 			placeholderText,
-			selectedImages,
-			setSelectedImages,
+			selectedMedia,
+			setSelectedMedia,
 			onSend,
 			onSelectImages,
 			shouldDisableImages,
@@ -65,6 +69,9 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 			mode,
 			setMode,
 			modeShortcutText,
+			isEditMode = false,
+			onCancel,
+			acceptedFileTypes,
 		},
 		ref,
 	) => {
@@ -650,17 +657,15 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					return
 				}
 
-				const acceptedTypes = ["png", "jpeg", "webp"]
-
-				const imageItems = Array.from(items).filter((item) => {
+				const mediaItems = Array.from(items).filter((item) => {
 					const [type, subtype] = item.type.split("/")
-					return type === "image" && acceptedTypes.includes(subtype)
+					return (type === "image" || type === "video") && acceptedFileTypes?.includes(subtype)
 				})
 
-				if (!shouldDisableImages && imageItems.length > 0) {
+				if (!shouldDisableImages && mediaItems.length > 0) {
 					e.preventDefault()
 
-					const imagePromises = imageItems.map((item) => {
+					const mediaPromises = mediaItems.map((item) => {
 						return new Promise<string | null>((resolve) => {
 							const blob = item.getAsFile()
 
@@ -685,17 +690,17 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 						})
 					})
 
-					const imageDataArray = await Promise.all(imagePromises)
-					const dataUrls = imageDataArray.filter((dataUrl): dataUrl is string => dataUrl !== null)
+					const mediaDataArray = await Promise.all(mediaPromises)
+					const dataUrls = mediaDataArray.filter((dataUrl): dataUrl is string => dataUrl !== null)
 
 					if (dataUrls.length > 0) {
-						setSelectedImages((prevImages) => [...prevImages, ...dataUrls].slice(0, MAX_IMAGES_PER_MESSAGE))
+						setSelectedMedia((prevMedia) => [...prevMedia, ...dataUrls].slice(0, MAX_IMAGES_PER_MESSAGE))
 					} else {
 						console.warn(t("chat:noValidImages"))
 					}
 				}
 			},
-			[shouldDisableImages, setSelectedImages, cursorPosition, setInputValue, inputValue, t],
+			[shouldDisableImages, setSelectedMedia, cursorPosition, setInputValue, inputValue, t, acceptedFileTypes],
 		)
 
 		const handleMenuMouseDown = useCallback(() => {
@@ -811,15 +816,13 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				const files = Array.from(e.dataTransfer.files)
 
 				if (files.length > 0) {
-					const acceptedTypes = ["png", "jpeg", "webp"]
-
-					const imageFiles = files.filter((file) => {
+					const mediaFiles = files.filter((file) => {
 						const [type, subtype] = file.type.split("/")
-						return type === "image" && acceptedTypes.includes(subtype)
+						return (type === "image" || type === "video") && acceptedFileTypes?.includes(subtype)
 					})
 
-					if (!shouldDisableImages && imageFiles.length > 0) {
-						const imagePromises = imageFiles.map((file) => {
+					if (!shouldDisableImages && mediaFiles.length > 0) {
+						const mediaPromises = mediaFiles.map((file: File) => {
 							return new Promise<string | null>((resolve) => {
 								const reader = new FileReader()
 
@@ -837,12 +840,14 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 							})
 						})
 
-						const imageDataArray = await Promise.all(imagePromises)
-						const dataUrls = imageDataArray.filter((dataUrl): dataUrl is string => dataUrl !== null)
+						const mediaDataArray = await Promise.all(mediaPromises)
+						const dataUrls = mediaDataArray.filter(
+							(dataUrl: string | null): dataUrl is string => dataUrl !== null,
+						)
 
 						if (dataUrls.length > 0) {
-							setSelectedImages((prevImages) =>
-								[...prevImages, ...dataUrls].slice(0, MAX_IMAGES_PER_MESSAGE),
+							setSelectedMedia((prevMedia) =>
+								[...prevMedia, ...dataUrls].slice(0, MAX_IMAGES_PER_MESSAGE),
 							)
 
 							if (typeof vscode !== "undefined") {
@@ -862,8 +867,9 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 				setCursorPosition,
 				setIntendedCursorPosition,
 				shouldDisableImages,
-				setSelectedImages,
+				setSelectedMedia,
 				t,
+				acceptedFileTypes,
 			],
 		)
 
@@ -1133,10 +1139,10 @@ export const ChatTextArea = forwardRef<HTMLTextAreaElement, ChatTextAreaProps>(
 					</div>
 				</div>
 
-				{selectedImages.length > 0 && (
+				{selectedMedia.length > 0 && (
 					<Thumbnails
-						images={selectedImages}
-						setImages={setSelectedImages}
+						images={selectedMedia}
+						setImages={setSelectedMedia}
 						style={{
 							left: "16px",
 							zIndex: 2,
